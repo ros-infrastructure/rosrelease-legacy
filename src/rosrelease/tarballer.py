@@ -38,6 +38,8 @@ import tempfile
 import shutil
 import hashlib
 
+from .sourcedeb_support import control_data
+
 def md5sum_file(filename):
     m = hashlib.md5()
     with open(filename, 'rb') as f:
@@ -47,7 +49,7 @@ def md5sum_file(filename):
             data = f.read(4096)
     return m.hexdigest()
 
-def make_dist_of_dir(tmp_dir, name, version, distro_stack, executor):
+def make_dist_of_dir(tmp_dir, distro_stack, rospack, rosstack, executor):
     """
     Create tarball in a temporary directory. 
     It is expected the tempdir has a fresh checkout of the stack.
@@ -56,11 +58,13 @@ def make_dist_of_dir(tmp_dir, name, version, distro_stack, executor):
     @param version: stack version
     @return: tarball file path, control data. 
     """
+    name = distro_stack.name
+    version = distro_stack.version
     tmp_source_dir = os.path.join(tmp_dir, name)
     executor.info('Building a distribution for %s in %s'%(name, tmp_source_dir))
     tarball = create_stack_tarball(tmp_source_dir, name, version)
     md5sum = md5sum_file(tarball)
-    control = control_data(name, version, md5sum, stack_file=os.path.join(tmp_source_dir, 'stack.xml'))
+    control = control_data(name, version, md5sum, rospack, rosstack)
     
     # move tarball outside tmp_dir so we can clean it up
     dst = os.path.join(tempfile.gettempdir(), os.path.basename(tarball))
@@ -88,7 +92,7 @@ def create_stack_tarball(path, stack_name, stack_version):
     """
 
     # Verify that the stack has both a stack.xml and CMakeLists.txt file
-    stack_xml_path = os.path.join(path, roslib.stack_manifest.STACK_FILE)
+    stack_xml_path = os.path.join(path, 'stack.xml')
     cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
 
     if not os.path.exists(stack_xml_path):

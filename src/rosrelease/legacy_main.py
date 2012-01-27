@@ -36,14 +36,17 @@ NAME='rosrelease-legacy'
 import urllib2
 import os
 import sys
+import shutil
 
 import rospkg
 
-from .tarballer import make_dist_of_dir
-from .release_base import ReleaseException, get_email
 from .executor import get_default_executor
 from .jenkins_support import trigger_source_deb
+from .release_base import ReleaseException, get_email
 from .rospkg_support import check_stack_depends, confirm_stack_version
+from .rosdistro_support import load_and_validate_distro_file, update_rosdistro_yaml, checkin_distro_file
+from .tarballer import make_dist_of_dir
+from .vcs_support import checkout_branch, tag_release, svn_url_exists
 
 from optparse import OptionParser
 
@@ -196,18 +199,20 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
 
     prerelease_check(executor)
     
-    distro = load_distro_file(distro_file, stack_name, executor)
+    distro = load_and_validate_distro_file(distro_file, stack_name, executor)
     distro_stack = distro.stacks[stack_name]
 
     tmp_stack_checkout = checkout_and_validate_stack_source(distro_stack, stack_version,
                                                             rospack, rosstack, executor)
     
-    # have to do this after validation step
-    distro_stack.update_version(stack_version)
+    # Replace DistroStack instance with new, updated version
+    # number. Have to do this after validation step.
+    distro.stacks[stack_name] = rospkg.distro.DistroStack(distro_stack.name, stack_version,
+                                                          distro_stack.release_name, distro_stack._rules)
     email = get_email()            
 
     # create the tarball
-    tarball, control = make_dist_of_dir(tmp_stack_checkout, stack_name, stack_version, distro_stack)
+    tarball, control = make_dist_of_dir(tmp_stack_checkout, distro_stack, rospack, rosstack, executor)
     if not control['rosdeps']:
         executor.error("""Misconfiguration: control rosdeps are empty.\n
 In order to run create.py, the stack you are releasing must be on your current
@@ -234,8 +239,8 @@ ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
     os.remove(tarball)
 
     # update the rosdistro file
-    update_rosdistro_yaml(stack_name, stack_version, distro_file)
-    checkin_distro_file(stack_name, stack_version, distro_file)
+    update_rosdistro_yaml(stack_name, stack_version, distro_file, executor)
+    checkin_distro_file(stack_name, stack_version, distro_file, executor)
 
     # trigger source deb system
     trigger_source_deb(stack_name, stack_version, distro)
@@ -244,5 +249,5 @@ ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
 
 Now:
  * update the changelist at http://www.ros.org/wiki/%s/ChangeList
-"""%name)
+"""%stack_name)
         

@@ -59,7 +59,11 @@ def load_and_validate_properties(stack_name, distro, distro_file, executor):
         raise ReleaseException("%s is not listed in distro file %s"%(stack_name, distro_file))
     
     executor.info_bold("Release Properties")
-    for p in ['name', 'vcs_config']:
-        executor.info(" * %s: %s"%(p, getattr(props, p)))
+    executor.info(" * name: %s"%(props.name))
+    executor.info(" * vcs type: %s"%(props.vcs_config.type))
+    vcs_uri, vcs_version = props.vcs_config.get_branch('devel', anonymous=True)
+    vcs_version = vcs_version or '<default>'
+    executor.info(" * VCS devel URI: %s"%(vcs_uri))
+    executor.info(" * VCS devel version: %s"%(vcs_version))
     executor.info("Release target is [%s]"%(distro.release_name))
     

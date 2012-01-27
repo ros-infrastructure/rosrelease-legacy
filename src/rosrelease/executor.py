@@ -18,7 +18,7 @@ def yes_or_no():
 
 def prompt(msg):
     while True:
-        prompt = raw_input("%s (y/n)\n"%msg)
+        prompt = raw_input("%s (y/n)\n"%msg).strip().lower()
         if prompt == 'y':
             return True
         elif prompt == 'n':
@@ -84,13 +84,13 @@ class Executor(object):
 class StandardExecutor(object):
 
     def prompt(self, msg):
-        prompt(msg)
+        return prompt(msg)
 
-    def check_calls(self, cmd, **kwds):
-        subprocess.check_call(cmd, **kwds)
+    def check_call(self, cmd, **kwds):
+        return subprocess.check_call(cmd, **kwds)
 
     def ask_and_call(self, cmds, cwd=None):
-        ask_and_call(cmds, cwd=cwd)
+        return ask_and_call(cmds, cwd=cwd)
 
     def info_bold(self, msg):
         print_bold(msg)
@@ -125,7 +125,7 @@ class MockExecutor(object):
         return self.prompt_retval
 
     def ask_and_call(self, cmds, **kwds):
-        self.calls['ask_and_call'].append((cmds, kwds))
+        return self.calls['ask_and_call'].append((cmds, kwds))
     
     def info(self, msg):
         """

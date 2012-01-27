@@ -63,6 +63,7 @@ def checkout_branch(distro_stack, branch_name, executor):
 
     # get this before we do anything with sideeffects
     uri, branch_version = vcs_config.get_branch(branch_name, anonymous=True)
+    branch_version = branch_version or '' # convert for vcstools
     
     tmp_dir = tempfile.mkdtemp()
     dest = os.path.join(tmp_dir, stack_name)
