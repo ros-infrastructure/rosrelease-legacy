@@ -18,7 +18,7 @@ def yes_or_no():
 
 def prompt(msg):
     while True:
-        prompt = raw_input(msg)
+        prompt = raw_input("%s (y/n)\n"%msg)
         if prompt == 'y':
             return True
         elif prompt == 'n':

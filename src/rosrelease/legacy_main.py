@@ -1,8 +1,46 @@
+# Software License Agreement (BSD License)
+#
+# Copyright (c) 2010, Willow Garage, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#  * Neither the name of Willow Garage, Inc. nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# program name
+NAME='rosrelease-legacy'
+
 import urllib2
 import os
 import sys
 
-from .release_base import ReleaseException
+import rospkg
+
+from .tarballer import make_dist_of_dir
+from .release_base import ReleaseException, get_email
 from .executor import get_default_executor
 from .jenkins_support import trigger_source_deb
 from .rospkg_support import check_stack_depends, confirm_stack_version
@@ -10,6 +48,65 @@ from .rospkg_support import check_stack_depends, confirm_stack_version
 from optparse import OptionParser
 
 LEGACY_VERSION=8
+
+TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
+ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
+    
+def copy_to_server(name, version, tarball, control, control_only=False):
+    """
+    :param name: stack name, ``str``
+    :param version: stack version, ``str``
+    :param tarball: path to tarball file to upload
+    :param control: debian control file data, ``dict``
+    """
+    # create a separate directory for new tarball inside of stack-specific directory
+    # - rename vars for URL pattern
+    stack_name = name
+    stack_version = version
+    url = TARBALL_DIR_URL%locals()
+
+    if not svn_url_exists(url):
+        cmd = ['svn', 'mkdir', '--parents', "-m", "creating new tarball directory", url]
+        print("creating new tarball directory")
+        print(' '.join(cmd))
+        check_call(cmd)
+
+    tarball_name = os.path.basename(tarball)
+
+    # check to see if tarball already exists. This happens in
+    # multi-distro releases. It's best to reuse the existing tarball.
+    tarball_url = url + '/' + tarball_name
+    if svn_url_exists(tarball_url):
+        # no longer ask user to reuse, always reuse b/c people answer
+        # this wrong and it breaks things.  the correct way to
+        # invalidate is to delete the tarball manually with SVN from
+        # now on.
+        print("reusing existing tarball of release for this distribution")
+        return
+
+    # checkout tarball tree so we can add new tarball
+    dir_name = "%s-%s"%(name, version)
+    tmp_dir = checkout_svn_to_tmp(dir_name, url)
+    subdir = os.path.join(tmp_dir, dir_name)
+    if not control_only:
+        to_path = os.path.join(subdir, tarball_name)
+        print("copying %s to %s"%(tarball, to_path))
+        assert os.path.exists(tarball)
+        shutil.copyfile(tarball, to_path)
+
+    # write control data to file
+    control_f = '%s-%s.yaml'%(name, version)
+    with open(os.path.join(subdir, control_f), 'w') as f:
+        f.write(yaml.safe_dump(control))
+    
+    # svn add tarball and control file data
+    if not control_only:
+        check_call(['svn', 'add', tarball_name], cwd=subdir)
+    check_call(['svn', 'add', control_f], cwd=subdir)
+    if control_only:
+        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
+    else:
+        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
 
 def check_version():
     url = 'https://code.ros.org/svn/release/trunk/VERSION'
@@ -54,13 +151,19 @@ def load_sys_args(distros_dir):
 def prerelease_check(executor):
     # ask if stack got tested
     if not executor.prompt('Did you run prerelease tests on your stack?'):
-        executor.info("""Before releasing a stack, you should make sure your stack works well,
- and that the new release does not break any already released stacks
- that depend on your stack.
+        executor.info("""
+Before releasing a stack, you should make sure your stack works well,
+and that the new release does not break any already released stacks
+that depend on your stack.
+
 Willow Garage offers a pre-release test set that tests your stack and all
- released stacks that depend on your stack, on all distributions and architectures
- supported by Willow Garage. 
-You can trigger pre-release builds for your stack on <http://code.ros.org/prerelease/>""")
+released stacks that depend on your stack, on all distributions and
+architectures supported by Willow Garage. 
+
+You can trigger pre-release builds for your stack at:
+
+http://code.ros.org/prerelease
+""")
         executor.exit(1)
     
 def legacy_main():
@@ -89,7 +192,7 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     try:
         local_stack_path = rosstack.get_path(stack_name)
     except rospkg.ResourceNotFound:
-        raise ReleaseException("ERROR: Cannot find local checkout of stack [%s].\nThis script requires a local version of the stack that you wish to release.\n"%(name))
+        raise ReleaseException("ERROR: Cannot find local checkout of stack [%s].\nThis script requires a local version of the stack that you wish to release.\n"%(stack_name))
 
     prerelease_check(executor)
     
