@@ -67,3 +67,57 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     
     return metadata
 
+def _text_only(soup):
+    return ''.join(soup.findAll(text=True))
+
+def convert_html_to_text(d):
+    """
+    Convert a HTML description to plain text. This routine still has
+    much work to do, but appears to handle the common uses of HTML in
+    our current manifests.
+    """
+    # check for presence of tags
+    if '<' in d:
+        from .BeautifulSoup import BeautifulSoup
+        soup = BeautifulSoup(d)
+
+        # first, target formatting tags with a straight replace
+        for t in ['b', 'strong', 'em', 'i', 'tt', 'a']:
+            tags = soup.findAll(t)
+            for x in tags:
+                x.replaceWith(_text_only(x))
+                
+        # second, target low-level container tags
+        tags = soup.findAll('li')
+        for x in tags:
+            x.replaceWith('* '+_text_only(x)+'\n')
+
+        # convert all high-level containers to line breaks
+        for t in ['p', 'div']:
+            tags = soup.findAll(t)
+            for t in tags:
+                t.replaceWith(_text_only(t)+'\n')
+
+        # findAll text strips remaining tags
+        d = ''.join(soup.findAll(text=True))
+        
+    # reduce the whitespace as the debian parsers have strict rules
+    # about what is a paragraph and what is verbose based on leading
+    # whitespace.
+    d = '\n'.join([x.strip() for x in d.split('\n')])
+
+    d_reduced = ''
+    last = None
+    for x in d.split('\n'):
+        if last is None:
+            d_reduced = x
+        else:
+            if x == '':
+                if last == '':
+                    pass
+                else:
+                    d_reduced += '\n'
+            else:
+                d_reduced += x + ' '
+        last = x
+    return d_reduced

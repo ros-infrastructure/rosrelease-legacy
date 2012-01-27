@@ -54,7 +54,6 @@ from release import ReleaseException, update_rosdistro_yaml, \
 
 TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
 ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
-SERVER = 'http://build.willowgarage.com/'
     
 def get_email():
     if 'ROS_EMAIL' in os.environ:

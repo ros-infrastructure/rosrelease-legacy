@@ -1,21 +1,18 @@
+import os
 import jenkins
 
-def trigger_jenkins_source_deb(name, version, distro):
+SERVER = 'http://build.willowgarage.com/'
+
+def trigger_source_deb(stack_name, stack_version, distro, simulate=False):
     h = jenkins.Jenkins(SERVER)
     parameters = {
         'DISTRO_NAME': distro.release_name,
-        'STACK_NAME': name,
-        'STACK_VERSION': version,        
+        'STACK_NAME': stack_name,
+        'STACK_VERSION': stack_version,        
         }
-    h.build_job('debbuild-sourcedeb', parameters=parameters, token='RELEASE_SOURCE_DEB')
-
-def trigger_debs(distro_name, os_platform, arch):
-    h = jenkins.Jenkins(SERVER)
-    parameters = {
-        'DISTRO_NAME': distro_name,
-        'STACK_NAME': 'ALL',
-        'OS_PLATFORM': os_platform,
-        'ARCH': arch,        
-        }
-    h.build_job('debbuild-build-debs-%s-%s-%s'%(distro_name, os_platform, arch), parameters=parameters, token='RELEASE_BUILD_DEBS')
-
+    args = ('debbuild-sourcedeb',)
+    kwds = dict(parameters=parameters, token='RELEASE_SOURCE_DEB')
+    if simulate:
+        return h.build_job_url(*args, **kwds)
+    else:
+        h.build_job(*args, **kwds)
