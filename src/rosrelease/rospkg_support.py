@@ -34,7 +34,12 @@ def _sub_compute_stack_depends(stack, packages, rospack, rosstack):
         except rospkg.ResourceNotFound:
             raise ReleaseException("cannot locate package [%s], which is a dependency in the [%s] stack"%(pkg, stack))
         if not st:
-            raise ReleaseException("stack depends on [%s], which is not in a stack"%pkg)
+            # filter out catkin-ized legacy manifests
+            package_manifest = rospack.get_manifest(pkg)
+            if package_manifest.is_catkin:
+                continue
+            else:
+                raise ReleaseException("stack depends on [%s], which is not in a stack"%pkg)
         if st == stack:
             continue
         if not st in stack_depends:
