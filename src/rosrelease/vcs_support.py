@@ -1,8 +1,41 @@
 from __future__ import print_function
 
+import os
+import subprocess
+import tempfile
+import vcstools
+
 from .executor import get_default_executor
 
-import subprocess
+def checkout_branch(distro_stack, branch_name, executor):
+    """
+    Checkout an VCS-based 'dev' code tree to a temporary directory.
+
+    :param executor: only used for printing. Actual checkout will
+      occur regardless of executor.
+    :param distro_stack: `DistroStack` instance for stack
+    :param branch_name: branch name to checkout.  See
+      `rospkg.distro.VcsConfig` for valid values.
+    
+    :returns: temporary directory that contains checkout of tree
+      temporary directory.  The checkout will be in a subdirectory
+      matching the stack name.  This returns the parent directory so
+      that checkout and the temporary directory can be removed
+      easily. ``str``
+    :raises: :exc:`ValueError` if branch is invalid
+    """
+    stack_name = distro_stack.name
+    vcs_config = distro_stack.vcs_config
+
+    # get this before we do anything with sideeffects
+    uri, branch_version = vcs_config.get_branch(branch_name, anonymous=True)
+    
+    tmp_dir = tempfile.mkdtemp()
+    dest = os.path.join(tmp_dir, stack_name)
+    executor.info('Checking out a fresh copy of %s from %s to %s...'%(stack_name, uri, dest))
+    vcs_client = vcstools.VcsClient(vcs_config.type, dest)
+    vcs_client.checkout(uri, branch_version)
+    return tmp_dir
 
 def svn_url_exists(url):
     """

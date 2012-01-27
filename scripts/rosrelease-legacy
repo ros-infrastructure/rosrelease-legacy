@@ -33,24 +33,12 @@
 
 from __future__ import print_function
 
-NAME="create.py"
-
 import sys
 import os
-from subprocess import call, check_call
-import shutil
-import yaml
-import urllib2
-import tempfile
-import subprocess
 
 from vcstools import VcsClient
 
 import rosrelease
-
-from release import ReleaseException, update_rosdistro_yaml, \
-    compute_stack_depends, get_stack_version, \
-    checkout_svn_to_tmp, checkout_stack, make_dist_of_dir
 
 TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
 ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
@@ -128,14 +116,5 @@ def copy_to_server(name, version, tarball, control, control_only=False):
     else:
         check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
 
-def checkout_distro_stack(distro_stack, from_url, spec):
-    vcs_type = distro_stack.vcs_config.type
-    tempdir = tempfile.mkdtemp()
-    temp_repo = os.path.join(tempdir, distro_stack.name)
-    client = VcsClient(vcs_type, temp_repo)
-    client.checkout(from_url, spec)
-    return temp_repo
-
-def main():
 if __name__ == '__main__':
     main()

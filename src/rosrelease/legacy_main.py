@@ -1,26 +1,32 @@
+import urllib2
 import os
 import sys
 
+from .release_base import ReleaseException
 from .executor import get_default_executor
+from .jenkins_support import trigger_source_deb
+from .rospkg_support import check_stack_depends, confirm_stack_version
 
 from optparse import OptionParser
 
-VERSION=8
+LEGACY_VERSION=8
 
-def check_version(executor):
+def check_version():
     url = 'https://code.ros.org/svn/release/trunk/VERSION'
     f = urllib2.urlopen(url)
     req_version = int(f.read())
     f.close()
-    if VERSION < req_version:
-        executor.info("This release script is out-of-date.\nPlease upgrade your release and ros_release scripts")
-        executor.exit(1)
+    return bool(LEGACY_VERSION >= req_version)
 
-def checkout_and_validate_stack_source(name, distro_stack, local_stack_path, stack_name, version):
+def checkout_and_validate_stack_source(distro_stack, stack_version,
+                                       rospack, rosstack, executor):
     #checkout the stack
-    tmp_dir = checkout_stack(stack_name, distro_stack)
-    confirm_stack_version(local_stack_path, os.path.join(tmp_dir, name), stack_name, version)
-    check_stack_depends(local_stack_path, stack_name)
+    stack_name = distro_stack.name
+    tmp_dir = checkout_branch(distro_stack, 'devel', executor)
+    confirm_stack_version(rosstack, os.path.join(tmp_dir, stack_name),
+                          stack_name, stack_version)
+    # raises ReleaseException if check fails
+    check_stack_depends(stack_name, rospack, rosstack)
     return tmp_dir
 
 def load_sys_args(distros_dir):
@@ -47,7 +53,7 @@ def load_sys_args(distros_dir):
 
 def prerelease_check(executor):
     # ask if stack got tested
-    if executor.prompt('Did you run prerelease tests on your stack?'):
+    if not executor.prompt('Did you run prerelease tests on your stack?'):
         executor.info("""Before releasing a stack, you should make sure your stack works well,
  and that the new release does not break any already released stacks
  that depend on your stack.
@@ -59,7 +65,9 @@ You can trigger pre-release builds for your stack on <http://code.ros.org/prerel
     
 def legacy_main():
     executor = get_default_executor()
-    check_version(executor)
+    if not check_version():
+        executor.info("This release script is out-of-date.\nPlease upgrade your release and ros_release scripts")
+        executor.exit(1)
 
     rospack = rospkg.RosPack()
     rosstack = rospkg.RosStack()    
@@ -67,13 +75,12 @@ def legacy_main():
     try:
         distros_dir = os.path.join(rospack.get_path('release_resources'), '..', 'distros')
     except rospkg.ResourceNotFound:
-        executor.info("ERROR: cannot find 'release_resources' package.  Please see release setup instructions")
+        executor.error("cannot find 'release_resources' package.  Please see release setup instructions")
         executor.exit(1)
     try:
         _legacy_main(executor, rospack, rosstack, distros_dir)
     except ReleaseException as e:
-        #TODO: executor.error
-        executor.info("ERROR: %s"%str(e))
+        executor.error(str(e))
         executor.exit(1)
 
 def _legacy_main(executor, rospack, rosstack, distros_dir):
@@ -87,10 +94,11 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     prerelease_check(executor)
     
     distro = load_distro_file(distro_file, stack_name, executor)
-    distro_stack = distro.stacks[name]
+    distro_stack = distro.stacks[stack_name]
 
-    checkout_and_validate_stack_source(name, distro_stack, local_stack_path, stack_name, stack_version)
-
+    tmp_stack_checkout = checkout_and_validate_stack_source(distro_stack, stack_version,
+                                                            rospack, rosstack, executor)
+    
     # have to do this after validation step
     distro_stack.update_version(stack_version)
     email = get_email()            
@@ -98,10 +106,10 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     # create the tarball
     tarball, control = make_dist_of_dir(tmp_stack_checkout, stack_name, stack_version, distro_stack)
     if not control['rosdeps']:
-        sys.stderr.write("""Misconfiguration: control rosdeps are empty.\n
+        executor.error("""Misconfiguration: control rosdeps are empty.\n
 In order to run create.py, the stack you are releasing must be on your current
 ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
-        sys.exit(1)
+        executor.exit(1)
 
     print_bold("Release should be in %s"%(tarball))
     if email:
@@ -127,7 +135,7 @@ ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
     checkin_distro_file(stack_name, stack_version, distro_file)
 
     # trigger source deb system
-    trigger_hudson_source_deb(stack_name, stack_version, distro)
+    trigger_source_deb(stack_name, stack_version, distro)
 
     executor.info("""
 

@@ -39,15 +39,6 @@ import hashlib
 
 from .release_base import ReleaseException
 
-def checkout_stack(name, distro_stack):
-    """ 
-    Checkout the stack into a tempdir
-    
-    @return The temporary directory to find the stack inside
-    """
-    tmp_dir = checkout_dev_to_tmp(name, distro_stack)
-    return tmp_dir
-
 def md5sum_file(filename):
     m = hashlib.md5()
     with open(filename, 'rb') as f:

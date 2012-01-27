@@ -63,6 +63,12 @@ class Executor(object):
         """
         raise NotImplementedError()
     
+    def error(self, msg):
+        """
+        Print error msg to user
+        """
+        raise NotImplementedError()
+        
     def info_bold(self, msg):
         raise NotImplementedError()
     
@@ -92,6 +98,9 @@ class StandardExecutor(object):
     def exit(self, code):
         sys.exit(code)
     
+    def error(self, msg):
+        print("ERROR: %s"%(msg), file=sys.stderr)
+
     def info(self, msg):
         """
         Print msg to user
@@ -106,12 +115,14 @@ class MockExecutor(object):
 
     def __init__(self):
         self.calls = defaultdict(list)
+        self.prompt_retval = True
         
     def prompt(self, msg):
         """
         Prompt user with message for yes/no confirmation
         """
         self.calls['prompt'].append(msg)
+        return self.prompt_retval
 
     def ask_and_call(self, cmds, **kwds):
         self.calls['ask_and_call'].append((cmds, kwds))
@@ -122,6 +133,9 @@ class MockExecutor(object):
         """
         self.calls['info'].append(msg)
     
+    def error(self, msg):
+        self.calls['error'].append(msg)
+
     def info_bold(self, msg):
         self.calls['info_bold'].append(msg)
     
