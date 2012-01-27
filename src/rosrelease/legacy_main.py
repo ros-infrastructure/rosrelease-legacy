@@ -111,7 +111,7 @@ In order to run create.py, the stack you are releasing must be on your current
 ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
         executor.exit(1)
 
-    print_bold("Release should be in %s"%(tarball))
+    executor.info_bold("Release should be in %s"%(tarball))
     if email:
         print("including contact e-mail")
         control['contact'] = email
