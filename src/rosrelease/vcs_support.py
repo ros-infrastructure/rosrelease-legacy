@@ -74,7 +74,7 @@ def checkout_branch(distro_stack, branch_name, executor):
 
 def svn_url_exists(url):
     """
-    @return: True if SVN url points to an existing resource
+    :returns: ``True`` if SVN url points to an existing resource
     """
     try:
         p = subprocess.Popen(['svn', 'info', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -167,4 +167,20 @@ def tag_git(distro_stack, checkout_dir):
         subprocess.check_call(['git', 'branch', '-f', branch_name, config.dev_branch], cwd=temp_repo)
         subprocess.check_call(['git', 'push', from_url, branch_name], cwd=temp_repo)
     return [config.distro_tag]
+
+def checkout_svn_to_tmp(name, uri, executor):
+    """
+    Checkout an SVN tree to the tmp dir.
+    
+    Utility routine -- need to replace with vcs
+    
+    :returns: temporary directory that contains checkout of SVN tree in
+      directory 'name'. temporary directory will be a subdirectory of
+      OS-provided temporary space. ``str``
+    """
+    tmp_dir = tempfile.mkdtemp()
+    dest = os.path.join(tmp_dir, name)
+    executor.info('Checking out a fresh copy of %s from %s to %s...'%(name, uri, dest))
+    subprocess.check_call(['svn', 'co', uri, dest])
+    return tmp_dir
 

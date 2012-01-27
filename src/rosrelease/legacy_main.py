@@ -33,10 +33,11 @@
 # program name
 NAME='rosrelease-legacy'
 
-import urllib2
 import os
 import sys
 import shutil
+import urllib2
+import yaml
 
 import rospkg
 
@@ -46,7 +47,7 @@ from .release_base import ReleaseException, get_email
 from .rospkg_support import check_stack_depends, confirm_stack_version
 from .rosdistro_support import load_and_validate_distro_file, update_rosdistro_yaml, checkin_distro_file
 from .tarballer import make_dist_of_dir
-from .vcs_support import checkout_branch, tag_release, svn_url_exists
+from .vcs_support import checkout_branch, tag_release, svn_url_exists, checkout_svn_to_tmp
 
 from optparse import OptionParser
 
@@ -55,7 +56,7 @@ LEGACY_VERSION=8
 TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
 ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
     
-def copy_to_server(name, version, tarball, control, control_only=False):
+def copy_to_server(name, version, tarball, control, executor, control_only=False):
     """
     :param name: stack name, ``str``
     :param version: stack version, ``str``
@@ -70,9 +71,9 @@ def copy_to_server(name, version, tarball, control, control_only=False):
 
     if not svn_url_exists(url):
         cmd = ['svn', 'mkdir', '--parents', "-m", "creating new tarball directory", url]
-        print("creating new tarball directory")
-        print(' '.join(cmd))
-        check_call(cmd)
+        executor.info("creating new tarball directory")
+        executor.info(' '.join(cmd))
+        executor.check_call(cmd)
 
     tarball_name = os.path.basename(tarball)
 
@@ -84,16 +85,16 @@ def copy_to_server(name, version, tarball, control, control_only=False):
         # this wrong and it breaks things.  the correct way to
         # invalidate is to delete the tarball manually with SVN from
         # now on.
-        print("reusing existing tarball of release for this distribution")
+        executor.info("reusing existing tarball of release for this distribution")
         return
 
     # checkout tarball tree so we can add new tarball
     dir_name = "%s-%s"%(name, version)
-    tmp_dir = checkout_svn_to_tmp(dir_name, url)
+    tmp_dir = checkout_svn_to_tmp(dir_name, url, executor)
     subdir = os.path.join(tmp_dir, dir_name)
     if not control_only:
         to_path = os.path.join(subdir, tarball_name)
-        print("copying %s to %s"%(tarball, to_path))
+        executor.info("copying %s to %s"%(tarball, to_path))
         assert os.path.exists(tarball)
         shutil.copyfile(tarball, to_path)
 
@@ -104,12 +105,12 @@ def copy_to_server(name, version, tarball, control, control_only=False):
     
     # svn add tarball and control file data
     if not control_only:
-        check_call(['svn', 'add', tarball_name], cwd=subdir)
-    check_call(['svn', 'add', control_f], cwd=subdir)
+        executor.check_call(['svn', 'add', tarball_name], cwd=subdir)
+    executor.check_call(['svn', 'add', control_f], cwd=subdir)
     if control_only:
-        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
+        executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
     else:
-        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
+        executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
 
 def check_version():
     url = 'https://code.ros.org/svn/release/trunk/VERSION'
@@ -234,7 +235,7 @@ ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
     shutil.rmtree(tmp_stack_checkout)
 
     # checkin the tarball
-    copy_to_server(stack_name, stack_version, tarball, control)
+    copy_to_server(stack_name, stack_version, tarball, control, executor)
 
     # cleanup temporary file
     os.remove(tarball)
