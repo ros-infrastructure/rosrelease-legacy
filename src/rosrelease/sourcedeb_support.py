@@ -98,7 +98,7 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     metadata['rosdeps'] = rosdeps = {}
     for platform in platforms():
         rosdeps[platform] = stack_rosdeps(stack_name, platform, rospack, rosstack)
-        rosdeps[platform].extend(IMPLICIT_DEPS)
+        rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
         
     return metadata
 
