@@ -38,6 +38,8 @@ import rospkg
 
 from .rosdep_support import stack_rosdeps
 
+IMPLICIT_DEPS = ['libc6','build-essential','cmake','python-yaml','subversion']
+
 ubuntu_map = {
     '12.04': 'precise',
     '11.10': 'oneiric',
@@ -96,7 +98,8 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     metadata['rosdeps'] = rosdeps = {}
     for platform in platforms():
         rosdeps[platform] = stack_rosdeps(stack_name, platform, rospack, rosstack)
-    
+        rosdeps[platform].extend(IMPLICIT_DEPS)
+        
     return metadata
 
 def _text_only(soup):
