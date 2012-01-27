@@ -1,3 +1,9 @@
+import os
+import sys
+import yaml
+
+import rospkg.distro
+
 from . release_base import ReleaseException
 
 def update_rosdistro_yaml(stack_name, version, distro_file, executor):
@@ -27,10 +33,10 @@ def update_rosdistro_yaml(stack_name, version, distro_file, executor):
     with open(distro_file, 'w') as f:
         f.write(yaml.safe_dump(distro_d))
         
-def checkin_distro_file(name, version, distro_file, executor):
+def checkin_distro_file(stack_name, stack_version, distro_file, executor):
     cwd = os.path.dirname(distro_file)
     executor.check_call(['svn', 'diff', distro_file], cwd=cwd)
-    cmd = ['svn', 'ci', '-m', "%s %s"%(name, version), distro_file]
+    cmd = ['svn', 'ci', '-m', "%s %s"%(stack_name, stack_version), distro_file]
     executor.ask_and_call([cmd], cwd=cwd)
     
 def load_and_validate_distro_file(distro_file, stack_name, executor):
@@ -40,6 +46,7 @@ def load_and_validate_distro_file(distro_file, stack_name, executor):
         
     distro = rospkg.distro.load_distro(distro_file)
     load_and_validate_properties(stack_name, distro, distro_file, executor)
+    return distro
 
 def load_and_validate_properties(stack_name, distro, distro_file, executor):
     """
@@ -52,7 +59,7 @@ def load_and_validate_properties(stack_name, distro, distro_file, executor):
         raise ReleaseException("%s is not listed in distro file %s"%(stack_name, distro_file))
     
     executor.info_bold("Release Properties")
-    for p in ['name', 'dev_svn', 'release_svn']:
+    for p in ['name', 'vcs_config']:
         executor.info(" * %s: %s"%(p, getattr(props, p)))
     executor.info("Release target is [%s]"%(distro.release_name))
     

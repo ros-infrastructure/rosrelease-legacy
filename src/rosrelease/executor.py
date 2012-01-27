@@ -101,3 +101,35 @@ class StandardExecutor(object):
 def get_default_executor():
     return StandardExecutor()
 
+from collections import defaultdict
+class MockExecutor(object):
+
+    def __init__(self):
+        self.calls = defaultdict(list)
+        
+    def prompt(self, msg):
+        """
+        Prompt user with message for yes/no confirmation
+        """
+        self.calls['prompt'].append(msg)
+
+    def ask_and_call(self, cmds, **kwds):
+        self.calls['ask_and_call'].append((cmds, kwds))
+    
+    def info(self, msg):
+        """
+        Print msg to user
+        """
+        self.calls['info'].append(msg)
+    
+    def info_bold(self, msg):
+        self.calls['info_bold'].append(msg)
+    
+    def check_call(self, cmd, **kwds):
+        """
+        Invoke cmd.  kwds are same as subprocess.check_call()
+        """
+        self.calls['check_call'].append((cmd, kwds))
+
+    def exit(self, code):
+        self.calls['exit'].append(code)

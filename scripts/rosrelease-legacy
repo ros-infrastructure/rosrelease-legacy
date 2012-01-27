@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+# Software License Agreement (BSD License)
+#
+# Copyright (c) 2010, Willow Garage, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#  * Neither the name of Willow Garage, Inc. nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+from __future__ import print_function
+
+NAME="create.py"
+
+import sys
+import os
+from subprocess import call, check_call
+import shutil
+import yaml
+import urllib2
+import tempfile
+import subprocess
+
+from vcstools import VcsClient
+
+import rosrelease
+
+from release import ReleaseException, update_rosdistro_yaml, \
+    compute_stack_depends, get_stack_version, \
+    checkout_svn_to_tmp, checkout_stack, make_dist_of_dir
+
+TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
+ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
+SERVER = 'http://build.willowgarage.com/'
+    
+def get_email():
+    if 'ROS_EMAIL' in os.environ:
+        email = os.environ['ROS_EMAIL']
+    else:
+        print_bold("Please enter e-mail address (set ROS_EMAIL to get rid of this prompt):")
+        while 1:
+            email = sys.stdin.readline().strip()
+            if email:
+                break
+    if '@' in email:
+        return email
+    else:
+        return None
+
+def copy_to_server(name, version, tarball, control, control_only=False):
+    """
+    @param name: stack name
+    @type  name: str
+    @param version: stack version
+    @type  version: str
+    @param tarball: path to tarball file to upload
+    @param control: debian control file data
+    @type  control: dict
+    """
+    # create a separate directory for new tarball inside of stack-specific directory
+    # - rename vars for URL pattern
+    stack_name = name
+    stack_version = version
+    url = TARBALL_DIR_URL%locals()
+
+    if not svn_url_exists(url):
+        cmd = ['svn', 'mkdir', '--parents', "-m", "creating new tarball directory", url]
+        print("creating new tarball directory")
+        print(' '.join(cmd))
+        check_call(cmd)
+
+    tarball_name = os.path.basename(tarball)
+
+    # check to see if tarball already exists. This happens in
+    # multi-distro releases. It's best to reuse the existing tarball.
+    tarball_url = url + '/' + tarball_name
+    if svn_url_exists(tarball_url):
+        # no longer ask user to reuse, always reuse b/c people answer
+        # this wrong and it breaks things.  the correct way to
+        # invalidate is to delete the tarball manually with SVN from
+        # now on.
+        print("reusing existing tarball of release for this distribution")
+        return
+
+    # checkout tarball tree so we can add new tarball
+    dir_name = "%s-%s"%(name, version)
+    tmp_dir = checkout_svn_to_tmp(dir_name, url)
+    subdir = os.path.join(tmp_dir, dir_name)
+    if not control_only:
+        to_path = os.path.join(subdir, tarball_name)
+        print("copying %s to %s"%(tarball, to_path))
+        assert os.path.exists(tarball)
+        shutil.copyfile(tarball, to_path)
+
+    # write control data to file
+    control_f = '%s-%s.yaml'%(name, version)
+    with open(os.path.join(subdir, control_f), 'w') as f:
+        f.write(yaml.safe_dump(control))
+    
+    # svn add tarball and control file data
+    if not control_only:
+        check_call(['svn', 'add', tarball_name], cwd=subdir)
+    check_call(['svn', 'add', control_f], cwd=subdir)
+    if control_only:
+        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
+    else:
+        check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
+
+def checkout_distro_stack(distro_stack, from_url, spec):
+    vcs_type = distro_stack.vcs_config.type
+    tempdir = tempfile.mkdtemp()
+    temp_repo = os.path.join(tempdir, distro_stack.name)
+    client = VcsClient(vcs_type, temp_repo)
+    client.checkout(from_url, spec)
+    return temp_repo
+
+def main():
+if __name__ == '__main__':
+    main()

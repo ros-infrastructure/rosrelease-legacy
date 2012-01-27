@@ -37,6 +37,8 @@ import tarfile
 import shutil
 import hashlib
 
+from .release_base import ReleaseException
+
 def checkout_stack(name, distro_stack):
     """ 
     Checkout the stack into a tempdir
