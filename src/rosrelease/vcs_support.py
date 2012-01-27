@@ -11,6 +11,8 @@ def checkout_branch(distro_stack, branch_name, executor):
     """
     Checkout an VCS-based 'dev' code tree to a temporary directory.
 
+    WARNING: executor cannot be used for simulating this method.
+
     :param executor: only used for printing. Actual checkout will
       occur regardless of executor.
     :param distro_stack: `DistroStack` instance for stack

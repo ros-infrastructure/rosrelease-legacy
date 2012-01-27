@@ -119,7 +119,7 @@ ROS_PACKAGE_PATH. This is so create.py can access the stack's rosdeps.\n""")
         print("no valid contact e-mail, will not send build failure messages")
 
     # create the VCS tags
-    tag_release(distro_stack, tmp_stack_checkout)
+    tag_release(distro_stack, tmp_stack_checkout, executor)
 
     # Remove checkout dir
     shutil.rmtree(tmp_stack_checkout)
