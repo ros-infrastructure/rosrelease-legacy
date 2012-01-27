@@ -207,7 +207,8 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     
     # Replace DistroStack instance with new, updated version
     # number. Have to do this after validation step.
-    distro.stacks[stack_name] = rospkg.distro.DistroStack(distro_stack.name, stack_version,
+    distro.stacks[stack_name] = distro_stack = \
+                                rospkg.distro.DistroStack(distro_stack.name, stack_version,
                                                           distro_stack.release_name, distro_stack._rules)
     email = get_email()            
 
