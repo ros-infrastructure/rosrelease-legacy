@@ -97,8 +97,12 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     metadata['depends'] = [d.name for d in m.depends]
     metadata['rosdeps'] = rosdeps = {}
     for platform in platforms():
-        rosdeps[platform] = stack_rosdeps(stack_name, platform, rospack, rosstack)
-        rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
+        try:
+            rosdeps[platform] = stack_rosdeps(stack_name, platform, rospack, rosstack)
+            rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
+        except rosdep2.ResolutionError:
+            # this is expected; not all platforms are supported by every stack
+            pass
         
     return metadata
 

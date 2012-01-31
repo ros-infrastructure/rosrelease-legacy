@@ -33,6 +33,7 @@
 import os
 import sys
 
+import rospkg
 import rosdep2
 import rosdep2.platforms.debian
 
@@ -54,6 +55,7 @@ def stack_rosdeps(stack_name, platform, rospack, rosstack):
     :param platform: platform name (e.g. lucid)
 
     :returns: list of system package deps, ``str``
+    :raises :exc:`rosdep2.ResolutionError` if rosdeps for stack cannot be resolved on the specified platform
     :raises :exc:`rospkg.ResourceNotFound` if stack cannot be found
     :raises :exc:`rosdep2.UnsupportedOs`
     """
@@ -77,7 +79,7 @@ def stack_rosdeps(stack_name, platform, rospack, rosstack):
     for rosdep_name in rosdep_keys:
         view = lookup.get_rosdep_view(stack_name)
         d = view.lookup(rosdep_name)
-        _, rule = d.get_rule_for_platform(OS_NAME, platform, installer_keys, default_key)
+        _, rule = d.get_rule_for_platform(OS_NAME, platform, [INSTALLER_KEY], INSTALLER_KEY)
         resolved.extend(installer.resolve(rule))
     return list(set(resolved))
         
