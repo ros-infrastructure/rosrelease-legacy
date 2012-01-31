@@ -34,6 +34,10 @@ import os
 import sys
 
 import rosdep2
+import rosdep2.platforms.debian
+
+OS_NAME = rospkg.os_detect.OS_UBUNTU
+INSTALLER_KEY = rosdep2.platforms.debian.APT_INSTALLER
 
 def stack_rosdeps(stack_name, platform, rospack, rosstack):
     """
@@ -57,8 +61,10 @@ def stack_rosdeps(stack_name, platform, rospack, rosstack):
     #TODO: should use different lookup backend that loads db from web
     #to prevent issue with inconsistent trees.
     lookup = rosdep2.RosdepLookup.create_from_rospkg(rospack=rospack, rosstack=rosstack)
-    installer, installer_keys, default_key, \
-               os_name, os_version = rosdep2.get_default_installer(lookup)
+
+    # get the apt installer
+    context = rosdep2.create_default_installer_context()
+    installer = context.get_installer(INSTALLER_KEY)
 
     # compute the keys we need to resolve
     packages = rosstack.packages_of(stack_name)
@@ -71,7 +77,7 @@ def stack_rosdeps(stack_name, platform, rospack, rosstack):
     for rosdep_name in rosdep_keys:
         view = lookup.get_rosdep_view(stack_name)
         d = view.lookup(rosdep_name)
-        _, rule = d.get_rule_for_platform(os_name, os_version, installer_keys, default_key)
+        _, rule = d.get_rule_for_platform(OS_NAME, platform, installer_keys, default_key)
         resolved.extend(installer.resolve(rule))
-    return resolved
+    return list(set(resolved))
         

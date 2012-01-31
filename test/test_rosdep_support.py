@@ -17,5 +17,7 @@ def test_stack_rosdeps():
     rosstack = rospkg.RosStack()
     resolved = stack_rosdeps('python_qt_binding', 'oneiric', rospack, rosstack)
     assert 'python-qt4' in resolved, resolved
+    #no dupes
+    assert len(resolved) == len(list(set(resolved)))
 
     
