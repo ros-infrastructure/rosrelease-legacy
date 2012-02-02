@@ -127,7 +127,10 @@ def checkout_and_validate_stack_source(distro_stack, stack_version,
     confirm_stack_version(rosstack, os.path.join(tmp_dir, stack_name),
                           stack_name, stack_version)
     # raises ReleaseException if check fails
-    check_stack_depends(stack_name, rospack, rosstack)
+    if 0:
+        # disabled because this is causing too many problems with
+        # improperly catkin-ized packages.
+        check_stack_depends(stack_name, rospack, rosstack)
     return tmp_dir
 
 def load_sys_args(distros_dir):
