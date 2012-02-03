@@ -217,7 +217,12 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     email = get_email()            
 
     # create the tarball
-    tarball, control = make_dist_of_dir(tmp_stack_checkout, distro_stack, rospack, rosstack, executor)
+    try:
+        tarball, control = make_dist_of_dir(tmp_stack_checkout, distro_stack, rospack, rosstack, executor)
+    except rospkg.ResourceNotFound as e:
+        executor.error("""Misconfiguration: cannot find dependency.  Please add to your
+ROS_PACKAGE_PATH and try your release again.\nResource not found: %s"""%(str(e)))        
+        executor.exit(1)
     if not control['rosdeps']:
         executor.error("""Misconfiguration: control rosdeps are empty.\n
 In order to run create.py, the stack you are releasing must be on your current
