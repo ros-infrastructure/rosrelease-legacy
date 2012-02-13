@@ -214,7 +214,7 @@ def _legacy_main(executor, rospack, rosstack, distros_dir):
     distro.stacks[stack_name] = distro_stack = \
                                 rospkg.distro.DistroStack(distro_stack.name, stack_version,
                                                           distro_stack.release_name, distro_stack._rules)
-    email = get_email()            
+    email = get_email(executor)
 
     # create the tarball
     try:
