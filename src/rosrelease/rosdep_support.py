@@ -40,9 +40,30 @@ import rosdep2.platforms.debian
 OS_NAME = rospkg.os_detect.OS_UBUNTU
 INSTALLER_KEY = rosdep2.platforms.debian.APT_INSTALLER
 
-def stack_rosdeps(stack_name, platform, rospack, rosstack):
+def create_rosdep_lookup(rospack, rosstack):
+    #TODO: should use specific SourceListLoader backend that loads db
+    #from web to prevent issue with inconsistent trees.
+    return rosdep2.RosdepLookup.create_from_rospkg(rospack=rospack, rosstack=rosstack)
+    
+def stack_rosdep_keys(stack_name, rospack, rosstack):
     """
-    Calculate dependencies of stack on an 'ubuntu' OS, including both
+    Calculate rosdep keys of stack.
+    
+    :returns: list of rosdep keys, ``str``
+    :raises :exc:`rospkg.ResourceNotFound` if stack cannot be found
+    """
+    lookup = create_rosdep_lookup(rospack, rosstack)
+    
+    # compute the keys we need to resolve
+    packages = rosstack.packages_of(stack_name)
+    rosdep_keys = []
+    for p in packages:
+        rosdep_keys.extend(lookup.get_rosdeps(p, implicit=False))
+    return rosdep_keys
+    
+def resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack):
+    """
+    Resolve rosdep keys of stack on an 'ubuntu' OS, including both
     ROS stacks and their rosdep dependencies, for the specified
     ubuntu release version.
     
@@ -59,20 +80,11 @@ def stack_rosdeps(stack_name, platform, rospack, rosstack):
     :raises :exc:`rospkg.ResourceNotFound` if stack cannot be found
     :raises :exc:`rosdep2.UnsupportedOs`
     """
-
-    #TODO: should use different lookup backend that loads db from web
-    #to prevent issue with inconsistent trees.
-    lookup = rosdep2.RosdepLookup.create_from_rospkg(rospack=rospack, rosstack=rosstack)
+    lookup = create_rosdep_lookup(rospack, rosstack)
 
     # get the apt installer
     context = rosdep2.create_default_installer_context()
     installer = context.get_installer(INSTALLER_KEY)
-
-    # compute the keys we need to resolve
-    packages = rosstack.packages_of(stack_name)
-    rosdep_keys = []
-    for p in packages:
-        rosdep_keys.extend(lookup.get_rosdeps(p, implicit=False))
 
     # resolve the keys
     resolved = []

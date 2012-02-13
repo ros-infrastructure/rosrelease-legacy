@@ -36,7 +36,7 @@ import sys
 import rosdep2
 import rospkg
 
-from .rosdep_support import stack_rosdeps
+from .rosdep_support import resolve_stack_rosdeps, stack_rosdep_keys
 
 IMPLICIT_DEPS = ['libc6','build-essential','cmake','python-yaml','subversion']
 
@@ -96,9 +96,10 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     # locked later on due to lack of ABI compat
     metadata['depends'] = [d.name for d in m.depends]
     metadata['rosdeps'] = rosdeps = {}
+    metadata['rosdep-keys'] = rosdep_keys = stack_rosdep_keys(stack_name, rospack, rosstack)
     for platform in platforms():
         try:
-            rosdeps[platform] = stack_rosdeps(stack_name, platform, rospack, rosstack)
+            rosdeps[platform] = resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack)
             rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
         except rosdep2.ResolutionError:
             # this is expected; not all platforms are supported by every stack
