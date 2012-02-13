@@ -40,7 +40,7 @@ def get_email(executor):
     if 'ROS_EMAIL' in os.environ:
         email = os.environ['ROS_EMAIL']
     else:
-        executor.print_bold("Please enter e-mail address (set ROS_EMAIL to get rid of this prompt):")
+        executor.info_bold("Please enter e-mail address (set ROS_EMAIL to get rid of this prompt):")
         while 1:
             email = sys.stdin.readline().strip()
             if email:
