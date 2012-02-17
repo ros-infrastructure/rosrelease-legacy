@@ -62,7 +62,7 @@ def checkout_branch(distro_stack, branch_name, executor):
     vcs_config = distro_stack.vcs_config
 
     # get this before we do anything with sideeffects
-    uri, branch_version = vcs_config.get_branch(branch_name, anonymous=True)
+    uri, branch_version = vcs_config.get_branch(branch_name, anonymous=False)
     branch_version = branch_version or '' # convert for vcstools
     
     tmp_dir = tempfile.mkdtemp()
@@ -130,42 +130,42 @@ def tag_mercurial(distro_stack, checkout_dir, executor):
             executor.check_call(['hg', 'push'], cwd=temp_repo)
     return [tag_name]
 
-def tag_bzr(distro_stack):
+def tag_bzr(distro_stack, executor):
     config = distro_stack.vcs_config
     from_url = config.repo_uri
 
     # First create a release tag in the bzr repository.
-    if prompt("Would you like to tag %s as %s in %s"%(config.dev_branch, config.release_tag, from_url)):
+    if executor.prompt("Would you like to tag %s as %s in %s"%(config.dev_branch, config.release_tag, from_url)):
         temp_repo = checkout_distro_stack(distro_stack, from_url, config.dev_branch)
         #directly create and push the tag to the repo
-        subprocess.check_call(['bzr', 'tag', '-d', config.dev_branch,'--force',config.release_tag], cwd=temp_repo)
+        executor.check_call(['bzr', 'tag', '-d', config.dev_branch,'--force',config.release_tag], cwd=temp_repo)
 
     # Now create a distro branch.
     # In bzr a branch is a much better solution since
     # branches can be force-updated by fetch.
     branch_name = config.release_tag
-    if prompt("Would you like to create the branch %s as %s in %s"%(config.dev_branch, branch_name, from_url)):
+    if executor.prompt("Would you like to create the branch %s as %s in %s"%(config.dev_branch, branch_name, from_url)):
         temp_repo = checkout_distro_stack(distro_stack, from_url, config.dev_branch)
-        subprocess.check_call(['bzr', 'push', '--create-prefix', from_url+"/"+branch_name], cwd=temp_repo)
+        executor.check_call(['bzr', 'push', '--create-prefix', from_url+"/"+branch_name], cwd=temp_repo)
     return [config.distro_tag]
 
-def tag_git(distro_stack, checkout_dir):
+def tag_git(distro_stack, checkout_dir, executor):
     config = distro_stack.vcs_config
     from_url = config.repo_uri
     temp_repo = os.path.join(checkout_dir, distro_stack.name)
 
     # First create a release tag in the git repository.
-    if prompt("Would you like to tag %s as %s in %s"%(config.dev_branch, config.release_tag, from_url)):
-        subprocess.check_call(['git', 'tag', '-f', config.release_tag], cwd=temp_repo)
-        subprocess.check_call(['git', 'push', '--tags'], cwd=temp_repo)
+    if executor.prompt("Would you like to tag %s as %s in %s"%(config.dev_branch, config.release_tag, from_url)):
+        executor.check_call(['git', 'tag', '-f', config.release_tag], cwd=temp_repo)
+        executor.check_call(['git', 'push', '--tags'], cwd=temp_repo)
 
     # Now create a distro branch. In git tags are not overwritten
     # during updates, so a branch is a much better solution since
     # branches can be force-updated by fetch.
     branch_name = config.distro_tag
-    if prompt("Would you like to create the branch %s as %s in %s"%(config.dev_branch, branch_name, from_url)):
-        subprocess.check_call(['git', 'branch', '-f', branch_name, config.dev_branch], cwd=temp_repo)
-        subprocess.check_call(['git', 'push', from_url, branch_name], cwd=temp_repo)
+    if executor.prompt("Would you like to create the branch %s as %s in %s"%(config.dev_branch, branch_name, from_url)):
+        executor.check_call(['git', 'branch', '-f', branch_name, config.dev_branch], cwd=temp_repo)
+        executor.check_call(['git', 'push', from_url, branch_name], cwd=temp_repo)
     return [config.distro_tag]
 
 def checkout_svn_to_tmp(name, uri, executor):
@@ -181,6 +181,6 @@ def checkout_svn_to_tmp(name, uri, executor):
     tmp_dir = tempfile.mkdtemp()
     dest = os.path.join(tmp_dir, name)
     executor.info('Checking out a fresh copy of %s from %s to %s...'%(name, uri, dest))
-    subprocess.check_call(['svn', 'co', uri, dest])
+    executor.check_call(['svn', 'co', uri, dest])
     return tmp_dir
 
