@@ -29,6 +29,7 @@ def test_control_data():
     assert metadata['version'] == stack_version
     assert metadata['description-full']
     assert metadata['md5sum'] == md5sum
+    assert 'python-qt4' in metadata['rosdep-keys']
     assert 'oneiric' in metadata['rosdeps'], metadata['rosdeps']
     assert 'python-qt4' in metadata['rosdeps']['oneiric']
 

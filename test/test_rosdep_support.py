@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+import os
+import sys
+
 import rospkg
 rosstack = rospkg.RosStack()
 disable = False
