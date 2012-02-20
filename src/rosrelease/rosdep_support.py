@@ -36,6 +36,7 @@ import sys
 import rospkg
 import rosdep2
 import rosdep2.platforms.debian
+from rosdep2.rospkg_loader import DEFAULT_VIEW_KEY
 
 OS_NAME = rospkg.os_detect.OS_UBUNTU
 INSTALLER_KEY = rosdep2.platforms.debian.APT_INSTALLER
@@ -61,11 +62,10 @@ def stack_rosdep_keys(stack_name, rospack, rosstack):
         rosdep_keys.extend(lookup.get_rosdeps(p, implicit=False))
     return rosdep_keys
     
-def resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack):
+def resolve_rosdeps(rosdep_keys, platform, rospack, rosstack):
     """
-    Resolve rosdep keys of stack on an 'ubuntu' OS, including both
-    ROS stacks and their rosdep dependencies, for the specified
-    ubuntu release version.
+    Resolve rosdep keys on an 'ubuntu' OS, for the specified ubuntu
+    platform release version.
     
     NOTE: one flaw in this implementation is that it uses the rosdep
     view from the *active environment* to generate the rosdeps. It
@@ -91,7 +91,7 @@ def resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack):
     # resolve the keys
     resolved = []
     for rosdep_name in rosdep_keys:
-        view = lookup.get_rosdep_view(stack_name)
+        view = lookup.get_rosdep_view(DEFAULT_VIEW_KEY)
         d = view.lookup(rosdep_name)
         _, rule = d.get_rule_for_platform(OS_NAME, platform, [INSTALLER_KEY], INSTALLER_KEY)
         resolved.extend(installer.resolve(rule))

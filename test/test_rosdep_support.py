@@ -4,6 +4,8 @@ import os
 import sys
 
 import rospkg
+import rosrelease.rosdep_support
+
 rosstack = rospkg.RosStack()
 disable = False
 try:
@@ -24,18 +26,26 @@ def test_stack_rosdeps_keys():
     #no dupes
     assert len(resolved) == len(list(set(resolved)))
 
-#TODO: this test will not work for very long
-def test_resolve_stack_rosdeps():
-    if disable:
-        return
-    from rosrelease.rosdep_support import stack_rosdep_keys
-    from rosrelease.rosdep_support import resolve_stack_rosdeps
+def test_resolve_rosdeps():
+    from rosrelease.rosdep_support import resolve_rosdeps
     rospack = rospkg.RosPack()
     rosstack = rospkg.RosStack()
-    rosdep_keys = stack_rosdep_keys('python_qt_binding', rospack, rosstack)
-    resolved = resolve_stack_rosdeps('python_qt_binding', rosdep_keys, 'oneiric', rospack, rosstack)
+    rosdep_keys = [ 'python-qt-bindings' ]
+    resolved = resolve_rosdeps(rosdep_keys, 'oneiric', rospack, rosstack)
     assert 'python-qt4' in resolved, resolved
+    assert 'python-qt4-dev' in resolved, resolved
     #no dupes
     assert len(resolved) == len(list(set(resolved)))
 
+    rosdep_keys = [ 'python-empy', 'python-nose' ]
+    resolved = resolve_rosdeps(rosdep_keys, 'oneiric', rospack, rosstack)
+    assert set(['python-empy', 'python-nose']) == set(resolved)
+    #no dupes
+    assert len(resolved) == len(list(set(resolved)))
+
+    try:
+        resolve_rosdeps(['not a key'], 'oneiric', rospack, rosstack)
+        assert False, "should have raised"
+    except KeyError as e:
+        assert 'not a key' in str(e), "[%s]"%e
     

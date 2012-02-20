@@ -4,6 +4,8 @@ import os
 import sys
 
 import rospkg
+import rosrelease.sourcedeb_support
+
 rosstack = rospkg.RosStack()
 disable = False
 try:

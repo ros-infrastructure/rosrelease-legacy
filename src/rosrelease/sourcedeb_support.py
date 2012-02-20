@@ -37,7 +37,7 @@ import rosdep2
 import rospkg
 
 from .release_base import ReleaseException
-from .rosdep_support import resolve_stack_rosdeps, stack_rosdep_keys
+from .rosdep_support import resolve_rosdeps, stack_rosdep_keys
 
 IMPLICIT_DEPS = ['libc6','build-essential','cmake','python-yaml','subversion']
 
@@ -101,7 +101,7 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     metadata['rosdep-keys'] = rosdep_keys = stack_rosdep_keys(stack_name, rospack, rosstack)
     for platform in platforms():
         try:
-            rosdeps[platform] = resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack)
+            rosdeps[platform] = resolve_rosdeps(rosdep_keys, platform, rospack, rosstack)
             rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
         except KeyError as e:
             # rosdep key does not exist whatsoever, this is an error.
