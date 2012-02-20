@@ -36,6 +36,7 @@ import sys
 import rosdep2
 import rospkg
 
+from .release_base import ReleaseException
 from .rosdep_support import resolve_stack_rosdeps, stack_rosdep_keys
 
 IMPLICIT_DEPS = ['libc6','build-essential','cmake','python-yaml','subversion']
@@ -64,6 +65,7 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
     
     :param stack_name: name of stack, ``str``
     :param stack_version: stack version id, ``str``
+
     """
     m = rosstack.get_manifest(stack_name)
 
@@ -101,6 +103,17 @@ def control_data(stack_name, stack_version, md5sum, rospack, rosstack):
         try:
             rosdeps[platform] = resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack)
             rosdeps[platform].extend([x for x in IMPLICIT_DEPS if not x in rosdeps[platform]])
+        except KeyError as e:
+            # rosdep key does not exist whatsoever, this is an error.
+            raise ReleaseException("""No rosdep rule can be found for key [%s]
+
+This release script uses rosdep 2, which does not read files from
+<stack-name>/rosdep.yaml.  Please see the following documentation on
+how to add the rules you need for release:
+
+http://ros.org/doc/api/rosdep/html/contributing_rules.html
+"""%(e))
+            
         except rosdep2.ResolutionError:
             # this is expected; not all platforms are supported by every stack
             pass

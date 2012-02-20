@@ -76,6 +76,8 @@ def resolve_stack_rosdeps(stack_name, rosdep_keys, platform, rospack, rosstack):
     :param platform: platform name (e.g. lucid)
 
     :returns: list of system package deps, ``str``
+
+    :raises :exc:`KeyError` if no key for rosdep exists
     :raises :exc:`rosdep2.ResolutionError` if rosdeps for stack cannot be resolved on the specified platform
     :raises :exc:`rospkg.ResourceNotFound` if stack cannot be found
     :raises :exc:`rosdep2.UnsupportedOs`
