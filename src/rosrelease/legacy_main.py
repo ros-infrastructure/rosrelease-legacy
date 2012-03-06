@@ -41,6 +41,7 @@ import yaml
 
 import rospkg
 
+from . import __version__
 from .executor import get_default_executor
 from .jenkins_support import trigger_source_deb
 from .release_base import ReleaseException, get_email
@@ -174,11 +175,13 @@ http://code.ros.org/prerelease
         executor.exit(1)
     
 def legacy_main():
+    print("rosrelease-legacy version %s"%(__version__))
     executor = get_default_executor()
     if not check_version():
         executor.info("This release script is out-of-date.\nPlease upgrade your release and ros_release scripts")
         executor.exit(1)
 
+    print("initializing...")
     rospack = rospkg.RosPack()
     rosstack = rospkg.RosStack()    
 
