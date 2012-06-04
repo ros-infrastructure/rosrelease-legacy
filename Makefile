@@ -28,7 +28,7 @@ install: distro
 	sudo checkinstall python setup.py install
 
 testsetup:
-	echo "running rospkg tests"
+	echo "running rosrelease-legacy tests"
 
 test: testsetup
 	nosetests --with-coverage --cover-package=rospkg --with-xunit
