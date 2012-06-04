@@ -64,6 +64,8 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
     :param tarball: path to tarball file to upload
     :param control: debian control file data, ``dict``
     """
+
+
     # create a separate directory for new tarball inside of stack-specific directory
     # - rename vars for URL pattern
     stack_name = name
@@ -86,8 +88,8 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
         # this wrong and it breaks things.  the correct way to
         # invalidate is to delete the tarball manually with SVN from
         # now on.
-        executor.info("reusing existing tarball of release for this distribution")
-        return
+        executor.info("reusing existing tarball of release for this distribution, only updating control yaml file")
+        control_only = True
 
     # checkout tarball tree so we can add new tarball
     dir_name = "%s-%s"%(name, version)
@@ -103,11 +105,13 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
     control_f = '%s-%s.yaml'%(name, version)
     with open(os.path.join(subdir, control_f), 'w') as f:
         f.write(yaml.safe_dump(control))
-    
+
     # svn add tarball and control file data
     if not control_only:
         executor.check_call(['svn', 'add', tarball_name], cwd=subdir)
     executor.check_call(['svn', 'add', control_f], cwd=subdir)
+
+    # commit new data
     if control_only:
         executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
     else:
