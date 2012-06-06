@@ -105,6 +105,8 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
     control_f = '%s-%s.yaml'%(name, version)
     with open(os.path.join(subdir, control_f), 'w') as f:
         f.write(yaml.safe_dump(control))
+    
+    executor.info("Writing control file  %s [[[\n%s\n]]]"%(control_f, yaml.safe_dump(control)))
 
     # svn add tarball and control file data
     if not control_only:
@@ -113,9 +115,16 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
 
     # commit new data
     if control_only:
-        executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
+        if executor.prompt("Are you ready to commit the control file?"):
+            executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), control_f], cwd=subdir)
+        else:
+            executor.info("Skipping control file upload.")
     else:
-        executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
+        if executor.prompt("Are you ready to commit the control file and tarball?"):
+            executor.check_call(['svn', 'ci', '-m', "new release %s-%s"%(name, version), tarball_name, control_f], cwd=subdir)
+        else:
+            executor.info("Skipping control and tarball file upload.")
+
 
 def check_version():
     url = 'https://code.ros.org/svn/release/trunk/VERSION'
