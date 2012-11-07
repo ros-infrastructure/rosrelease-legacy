@@ -42,6 +42,7 @@ from .rosdep_support import resolve_rosdeps, stack_rosdep_keys
 IMPLICIT_DEPS = ['libc6','build-essential','cmake','python-yaml','subversion']
 
 ubuntu_map = {
+    '12.10': 'quantal',
     '12.04': 'precise',
     '11.10': 'oneiric',
     '11.04': 'natty',
