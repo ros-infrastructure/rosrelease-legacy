@@ -33,7 +33,7 @@
 import os
 import jenkins
 
-SERVER = 'http://build.willowgarage.com/'
+SERVER = 'http://jenkins.willowgarage.com:8080/'
 
 def trigger_source_deb(stack_name, stack_version, distro, simulate=False):
     h = jenkins.Jenkins(SERVER)
@@ -42,7 +42,7 @@ def trigger_source_deb(stack_name, stack_version, distro, simulate=False):
         'STACK_NAME': stack_name,
         'STACK_VERSION': stack_version,        
         }
-    args = ('debbuild-sourcedeb',)
+    args = ('_dry_sourcedeb',)
     kwds = dict(parameters=parameters, token='RELEASE_SOURCE_DEB')
     if simulate:
         return h.build_job_url(*args, **kwds)
