@@ -33,7 +33,7 @@
 import os
 import jenkins
 
-SERVER = 'http://jenkins.willowgarage.com:8080/'
+SERVER = 'http://jenkins.ros.org/'
 
 def trigger_source_deb(stack_name, stack_version, distro, simulate=False):
     h = jenkins.Jenkins(SERVER)

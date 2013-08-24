@@ -52,9 +52,9 @@ from .vcs_support import checkout_branch, tag_release, svn_url_exists, checkout_
 
 from optparse import OptionParser
 
-LEGACY_VERSION=8
+LEGACY_VERSION=9
 
-TARBALL_DIR_URL = 'https://code.ros.org/svn/release/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
+TARBALL_DIR_URL = 'https://ros-dry-releases.googlecode.com/svn/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
 ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
     
 def copy_to_server(name, version, tarball, control, executor, control_only=False):
@@ -127,7 +127,7 @@ def copy_to_server(name, version, tarball, control, executor, control_only=False
 
 
 def check_version():
-    url = 'https://code.ros.org/svn/release/trunk/VERSION'
+    url = 'http://ros-dry-releases.googlecode.com/svn/trunk/VERSION'
     f = urllib2.urlopen(url)
     req_version = int(f.read())
     f.close()
@@ -183,7 +183,7 @@ architectures supported by Willow Garage.
 
 You can trigger pre-release builds for your stack at:
 
-http://code.ros.org/prerelease
+http://prerelease.ros.org
 """)
         executor.exit(1)
     
