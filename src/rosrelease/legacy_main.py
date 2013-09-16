@@ -167,6 +167,10 @@ def load_sys_args(distros_dir):
     # brittle test to make sure that user got the args correct
     if not '.' in version:
         parser.error("[%s] doesn't appear to be a version number"%version)
+
+    if release_name not in ['cturtle', 'diamondback', 'electric', 'fuerte', 'groovy']:
+        parser.error("The ROS distro [%s] does not support dry releases" % release_name)
+
     return name, version, distro_file
 
 def prerelease_check(executor):
