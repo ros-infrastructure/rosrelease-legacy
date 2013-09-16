@@ -52,7 +52,7 @@ from .vcs_support import checkout_branch, tag_release, svn_url_exists, checkout_
 
 from optparse import OptionParser
 
-LEGACY_VERSION=9
+LEGACY_VERSION=10
 
 TARBALL_DIR_URL = 'https://ros-dry-releases.googlecode.com/svn/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s'
 ROSORG_URL = 'http://ros.org/download/stacks/%(stack_name)s/%(stack_name)s-%(stack_version)s.tar.bz2'
